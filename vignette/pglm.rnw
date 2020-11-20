@@ -1,0 +1,1484 @@
+\documentclass[nojss]{jss}
+\usepackage{enumerate}
+%\VignetteIndexEntry{Panel estimators for glm and glm-like models in  R: The pglm Packages}
+%\VignetteDepends{maxLik, statmod, plm}
+%\VignetteKeywords{generalized linear models, maximum likelihood estimation, R, econometrics}
+%\VignettePackage{pglm}
+
+\author{Yves Croissant\\Universit\'e de la R\'eunion}
+
+\Plainauthor{Yves Croissant}
+
+\title{Panel estimators for glm and glm-like models in \proglang{R}:
+  The \pkg{pglm} Package}
+
+\Plaintitle{Panel estimators for glm and glm-like models in R: The
+  pglm Package}
+
+\Keywords{generalized linear models, maximum likelihood estimation,
+  \proglang{R}, econometrics}
+
+\Plainkeywords{generalized linear models, maximum likelihood
+  estimation, R, econometrics}
+
+
+\Abstract{ \pkg{pglm} is a package for \proglang{R} which implements
+  panel estimator (mainly random effect models) for glm and
+  ``glm-like'' models. This includes binomial, poisson, negbin and
+  ordered models.}
+
+\Address{
+Yves Croissant\\
+Facult\'e de Droit et d'Economie\\
+Universit\'e de la R\'eunion\\
+15, avenue Ren\'e Cassin\\
+BP 7151\\
+F-97715 Saint-Denis Messag Cedex 9\\
+Telephone: +33/262/938446\\
+E-mail: \email{yves.croissant@univ-reunion.fr}
+\\
+}
+
+%% need no \usepackage{Sweave.sty}
+
+\begin{document}
+
+\SweaveOpts{engine=R,eps=FALSE}
+
+%\maketitle
+
+We present in this paper maximum likelihood estimators for generalized
+linear models and some direct extensions of these models when there
+are repeated observations of the same individuals. More precisely,
+three kind of models will be presented :
+
+\begin{itemize}
+\item linear gaussian models : in this case, maximum likelihood is an
+  alternative to generalized least squares estimators,
+\item models for limited dependent variable which include binomial,
+  ordered and censored models,
+\item count data models, more precisely Poisson and Negbin models.
+\end{itemize}
+
+\section{Limited dependent variable}
+
+In these model, we have a continuous latent variable $y^*$ which is,
+at least for some range, not directly observable and a rule of
+observation that links the observed variable $y$ to $y^*$. The latent
+variable is supposed to be the sum of a linear combination of some
+covariates and of an error term which is a random variable that
+follows a normal distribution.
+
+\begin{equation}
+y^* = \beta^\top x + \epsilon 
+\end{equation}
+
+$\epsilon$ is a random variable with known distribution. The
+hypothesis that $\mbox{E}(\epsilon)=0$ is often made, which is by no
+mean restrictive if $\beta$ contains an intercept. The distributions
+which are the most often chosen are the normal distribution and the
+logistic distribution. For the former, the density and probability
+functions are respectively :
+
+\begin{eqnarray}
+f(\epsilon) &=& \frac{1}{\sigma}\phi\left(\frac{\epsilon}{\sigma}\right) = \frac{1}{\sqrt{2\pi\sigma^2}}e^{-\left(\frac{\epsilon}{\sigma}\right)^2} \\
+F(\epsilon) &=& \Phi(\epsilon) = \int_{-\infty}^{\frac{\epsilon}{\sigma}}\phi(z)dz
+\end{eqnarray}
+
+where, in some models, the standard deviation $\sigma$ is identified
+and estimated whereas, for other models, it is not identified and,
+with no restriction, we supposte that $\sigma^2=\mbox{V}(\epsilon)=0$.
+
+
+For the latter, we have :
+
+
+\begin{eqnarray*}
+f(\epsilon) &=& \lambda(\epsilon) = \frac{e^\epsilon}{\left(1+e^\epsilon\right)^2} \\
+F(\epsilon) &=& \Lambda(\epsilon) = \frac{e^\epsilon}{1+e^\epsilon}
+\end{eqnarray*}
+
+
+The way the observed variable $y$ is linked to this latent variable
+defines several models.
+
+\subsection{Binomial models}
+
+The observed variable is binomial, the two possible values are denoted
+0 and 1. Let define the latent variable $y^*$, with the following rule
+of observation :
+
+\begin{eqnarray*}
+y^* > \mu \Rightarrow y = 1 \\
+y^* \leq \mu \Rightarrow y = 0
+\end{eqnarray*}
+
+The level and the scale of the latent variable is
+unobserved. Therefore, neither the mean nor the variance of $\epsilon$
+can be identified. With both the normal and the logistic distribution,
+we will have $\mbox{E}(\epsilon)=0)$. The variance is
+$\mbox{V}(\epsilon)=1$ for the normal distribution and
+$\mbox{V}(\epsilon)=\frac{\pi^2}{3}$ for the logistic distribution.
+Moreover, without loss of generality, we can state than $\mu = 0$.
+
+Therefore, the only identified parameters in this model is the $\beta$
+vector.
+
+The probabilities of the two outcomes are then :
+
+\begin{eqnarray*}
+P(y = 0) = P(\epsilon \leq - \beta^\top x)\\
+P(y = 1) = P(\epsilon > - \beta^\top x)
+\end{eqnarray*}
+
+\begin{eqnarray*}
+P(y = 0) = F(- \beta^\top x)\\
+P(y = 1) = 1 - F(- \beta^\top x) = F(\beta^\top x)
+\end{eqnarray*}
+
+where the last expression hold if the density function is symetric. 
+
+Defining $q = 2 y - 1$, which is equal to $-1, +1$, the probability
+can be expressed with the following compact expression :
+
+$$P(y) = F(q \beta^\top x)$$
+
+The log-likelihood is :
+
+$$
+\ln L = \sum_i \ln F_i
+$$
+
+with :
+
+$$
+F_i = F(z_i) \; \mbox{and}\; z_i = q_i\times\beta^\top x_i
+$$
+
+The gradient and the hessian are :
+
+\begin{eqnarray*}
+\frac{\partial \ln L}{\partial \beta}&=&\sum_i \frac{f_i}{F_i} q_i x_i \\
+\frac{\partial^2 \ln L}{\partial \beta \partial \beta^\top}&=&
+\sum_i \left(\frac{f_i'}{F_i} - \left(\frac{f_i}{F_i}\right)^2\right)
+x_ix_i^\top
+\end{eqnarray*}
+
+For the logit model, we have :
+
+
+\begin{eqnarray*}
+\frac{\partial \ln L}{\partial \beta}&=&\sum_i \frac{1}{1+e^{z_i}} q_i 
+x_i\\
+\frac{\partial^2 \ln L}{\partial \beta \partial \beta^\top}&=&
+- \sum_i \frac{e^{z_i}}{1+e^{z_i}}x_ix_i^\top
+\end{eqnarray*}
+
+For the probit model :
+
+\begin{eqnarray*}
+\frac{\partial \ln L}{\partial \beta}&=&\sum_i \frac{\phi_i}{\Phi_i} q_i x_i\\
+\frac{\partial^2 \ln L}{\partial \beta \partial \beta^\top}&=&
+- \sum_i \frac{\phi_i}{\Phi_i}\left(z_i+ \frac{\phi_i}{\Phi_i}\right) x_ix_i^\top
+\end{eqnarray*}
+
+\subsection{Ordinal models}
+
+
+Let $\omega = (\omega_1, \omega_1, \ldots, \omega_{J}, \omega_{J+1})$
+the vector of intercepts, with $\omega_1 = -\infty$ and $\omega_{J+1}=
++\infty$.
+
+$$
+y^* = \beta^\top x + \epsilon
+$$
+
+$$
+\begin{array}{rclcclccc}
+y &=& 1 &  \Leftrightarrow & \omega_1 &\leq& \beta^\top x + \epsilon &\leq& \omega_2 \\
+y &=& 2 &  \Leftrightarrow & \omega_2 &\leq& \beta^\top x + \epsilon &\leq& \omega_3 \\
+&\vdots &  & \vdots && \vdots & & \vdots\\
+y &=& J-1 &  \Leftrightarrow & \omega_{J-1} &\leq& \beta^\top x + \epsilon &\leq& \omega_{J} \\
+y &=& J &  \Leftrightarrow & \omega_{J} &\leq& \beta^\top x + \epsilon &\leq& \omega_{J+1}\\
+\end{array}
+$$
+
+The probability of the outcome $y_i$ for the individual $i$ can be writen :
+$$
+\mbox{P}_i = F(\omega_{y_i+1}-\beta^\top x_i) -
+F(\omega_{y_i}-\beta^\top x_i) = F_i^+ - F_i
+$$
+
+where $F_i^+=F(\omega_{y_i+1}-\beta^\top x_i)$ and
+$F_i=F(\omega_{y_i}-\beta^\top x_i)$
+
+
+The gradient and the hessian are, denoting $\theta = (\beta, \omega)$ the
+complete set of the parameters, $w_h$ a vector of $J+1$ elements which
+are all zero except at the $h$ position and $e$ the derivative of the
+density function $f$ :
+
+
+$$
+\frac{\partial \ln L_i}{\partial \theta} = \left(\begin{array}{c} -
+    x_i \\ w_{y_i+1}\end{array}\right) \frac{f_i^+}{P_i} -
+\left(\begin{array}{c} - x_i \\ w_{y_i}\end{array}\right)
+\frac{f_i}{P_i}
+$$
+
+
+\begin{eqnarray*}
+  \frac{\partial^2 \ln L_i}{\partial \theta\partial \theta^\top} &=&
+  \left(\begin{array}{c} - x_i \\ w_{y_i+1}\end{array}\right)\left(-x_i^\top, w_{y_i+1}^\top\right)
+  \frac{e_i^+}{P_i}
+  - \left(\begin{array}{c} - x_i \\ w_{y_i}\end{array}\right)\left(-x_i^\top, w_{y_i}^\top\right) 
+  \frac{e_i}{P_i}\\
+  &-& \left(\frac{\partial \ln L_i}{\partial \theta}\right)\left(\frac{\partial \ln L_i}{\partial \theta}\right)^\top
+\end{eqnarray*}
+
+\subsection{Tobit models}
+
+We deal here with a variable $y$ that is left-censored at zero, which
+means that we observe its continus positive values. It is linked with
+a latent variable $y^*$ with the following rule of observation :
+
+\begin{eqnarray*}
+y^* \leq 0 \Rightarrow y = 0 \\
+y^* > 0 \Rightarrow y = y^*
+\end{eqnarray*}
+
+with $\epsilon \sim N(0, \sigma_\epsilon^2)$. We have :
+
+$$
+\mbox{P}(y = 0)=\Phi\left(-\frac{\beta^\top x}{\sigma_\epsilon}\right)
+$$
+
+for null values of $y$ and :
+
+$$
+f(y) = \frac{1}{\sigma_\epsilon}\phi\left(\frac{y-\beta^\top
+    x}{\sigma_\epsilon}\right)
+$$
+
+is the density of positive observations. 
+
+We'll note $\tilde{e}_i^0=-\beta^\top x_i /\sigma$ and
+$\tilde{e}_i^+=(y_i-\beta^\top x_i) /\sigma$ the standardized
+residuals for null observations and positive observations.
+
+The contribution of one observation to the likelihood function is then
+:
+
+$$
+\left[\Phi\left( \tilde{e}_i^0\right)\right]^{I_i^0} \times
+\left[\frac{1}{\sigma_\epsilon}\phi\left( \tilde{e}_i^+\right)\right]^{I_i^+}
+$$
+
+and the log-likelihood is then :
+
+$$
+\ln L = \sum_{i=1}^n \left[I_i^0 \ln \Phi\left(\tilde{e}_i^0\right)-
+  I_i^+\frac{1}{2}\left( \ln (2\pi\sigma^2_\epsilon) +
+    \left.\tilde{e}_i^0\right.^2 \right)\right]
+$$
+
+
+\begin{eqnarray*}
+\frac{\partial \ln L_i}{\partial \beta}&=&
+\frac{1}{\sigma_\epsilon}\left\{-I_i^0\frac{\phi_i}{\Phi_i}+
+I_i^+\tilde{e}_i^+
+\right\}
+ x_i\\
+\frac{\partial \ln L_i}{\partial\sigma_\epsilon^2}&=&
+-\frac{1}{2\sigma_\epsilon^2}\left\{I_i^0\frac{\phi_i}{\Phi_i}\tilde{e}_i^0+
+I_i^+\left(1-\left.\tilde{e}_i^+\right.^2\right)
+\right\}
+\end{eqnarray*}
+
+
+\begin{eqnarray*}
+\frac{\partial^2\ln L_i}{\partial \beta\partial\beta^\top}&=&
+-\frac{1}{\sigma_\epsilon^2}\left\{I_i^0\frac{\phi_i}{\Phi_i}\left(\tilde{e}_i^0+\frac{\phi_i}{\Phi_i}\right)+I_i^+\right\}x_ix_i^\top\\
+\frac{\partial^2\ln L_i}{\partial \beta\partial\sigma_\epsilon^2}&=&
+\frac{1}{\sigma_\epsilon^3}\left\{\frac{1}{2}I_i^0\frac{\phi_i}{\Phi_i}
+\left[1-\left(\tilde{e}_i^0+\frac{\phi_i}{\Phi_i}\right)\tilde{e}_i^0\right]-
+  I_i^+ \tilde{e}_i^+\right\}x_i\\
+\frac{\partial^2\ln L_i}{\partial \sigma_\epsilon^4}&=&
+\frac{1}{2\sigma_\epsilon^4}\left\{
+\frac{1}{2}I_i^0\frac{\phi_i}{\Phi_i}\tilde{e}_i^0\left[3-\left(\tilde{e}_i^0+\frac{\phi_i}{\Phi_i}\right)
+\tilde{e}_i^0\right] +
+I_i^+\left(1-2\left.\tilde{e}_i^+\right.^2\right)\right\}
+\end{eqnarray*}
+
+\subsection{Panel data}
+
+In case of panel data, we'll now assume that the latent variable
+contains an individual-specific intercept $\mu_i$ : 
+
+\begin{equation}
+y^*_{it}=\beta^\top x_{it}+ \mu_i+\epsilon_{it}
+\end{equation}
+
+As in the linear panel data setting, $\mu_i$ can either be considered
+as parameter to be estimated (the fixed effect approach) or as a
+random variable whose parameters has to be estimated (the random
+effect approach). 
+
+However, in the non-linear case, for most models, the fixed-effect
+approach is unpractible. Because of the so-called ``incidental
+parameter'' problem, the coefficients of interest ($\beta$) can't be
+consistently estimated. The intuition is that, for large $n$ and fixed
+$T$, the $\mu_i$ can't be consistently estimated. In the linear case,
+there are natural ways to get rid of these individual effects and,
+therefore, the inconstency is limited to the individual effects and
+the $\beta$ vector can be consistently estimated. In the non-linear
+setting, there is no obvious ways to get rid of the individual
+intercepts, and except for some specific models (the logit and the
+poisson model), there is no practible fixed effect models.
+
+On the opposite, a random-effect model is available for all the models
+of interest. The main caveat of this model is that it is only
+consistent if the individual effects are uncorelated with the
+covariates. In what follow, we'll suppose that the individual effects
+are normaly distributed :
+
+\begin{equation}
+\mu \sim N(0, \sigma_\mu^2)
+\end{equation}
+
+
+For all the models, the contribution of one observation to the
+likelihood will be now, for a given value of the individual effect :
+of the form : $l_{it} \mid \mu_i =l\left(\beta^\top x_{it}+\mu_i\right)$
+
+The contribution of one individual $i$ for a given individual effect is :
+
+\begin{equation}
+l_i \mid \mu_i = L(\beta^\top x_{it} + \mu_{it})=
+\prod_{t=1}^Tl_{it}= \prod_{t=1}^Tl\left(\beta^\top x_{it}+\mu_i\right)
+\end{equation}
+
+The unconditional contribution of one individual to the likelihood is
+obtained by integrating out the preeceding for all values of the
+individual effect :
+
+\begin{equation}
+l_i = \frac{1}{\sqrt{2\pi\sigma_\mu^2}}
+\int_{-\infty}^{+\infty}
+\left[\prod_{t=1}^Tl\left(\beta^\top x_{it}+\mu_i\right)\right]
+e^{-0.5\left(\frac{\mu}{\sigma_\mu}\right)^2} d\mu
+\end{equation}
+
+
+with the change of variable : $z=\frac{\mu}{\sqrt{2}\sigma_\mu}$
+
+\begin{equation}
+l_i = \frac{1}{\sqrt{\pi}}
+\int_{-\infty}^{+\infty}
+\left[\prod_{t=1}^Tl\left(\beta^\top x_{it}+\sqrt{2\sigma_\mu^2} z \right)\right]
+e^{-z^2} dz
+\end{equation}
+
+which is a one dimentional integral which can be very efficiently
+estimated using gaussian quadratures. 
+
+which can be approximated using Gauss-Hermite quadrature :
+
+$$
+\int_{-\infty}^{+\infty}f(z)e^{-z^2}dz = \sum_{r=1}^R w_r f(v_r)
+$$
+
+where $v_r$ are the nodes, $w_r$ are the weights and $R$ the number of
+evaluations of the function. The integral is very efficiently
+estimated, even for a relatively small $R$. 
+
+
+\begin{equation}
+L_i=\frac{1}{\sqrt{\pi}}\sum_{r=1}^R w_r\left[ \prod_{t=1}^Tl(x_{it},\theta,v_r)\right]
+\end{equation}
+
+\begin{equation}
+  \frac{\partial \ln L_i}{\partial \theta} =
+  \frac{1}{\sqrt{\pi}L_i}\sum_{r=1}^R\left\{ w_r
+    \left[ \prod_{t=1}^Tl(x_{it},\theta,v_r)\right]
+    \times \left[ \sum_{t=1}^T\frac{\partial \ln l}{\partial \theta}(x_{it}, \theta, v_r)\right]\right\}
+\end{equation}
+
+\begin{eqnarray*}
+\frac{\partial^2\ln L_i}{\partial \theta \partial\theta^\top}&=&
+\frac{1}{\sqrt{\pi}L_i}
+\sum_{r=1}^R\left\{ w_r
+    \left[ \prod_{t=1}^Tl(x_{it},\theta,v_r)\right]
+    \times 
+\left[ \sum_{t=1}^T\frac{\partial \ln l}{\partial \theta}
+(x_{it}, \theta, v_r)\right]
+\left[ \sum_{t=1}^T\frac{\partial \ln l}{\partial \theta}
+(x_{it}, \theta, v_r)\right]^\top
+\right\} \\
+&+&\frac{1}{\sqrt{\pi}L_i}\sum_{r=1}^R\left\{ w_r
+    \left[ \prod_{t=1}^Tl(x_{it},\theta,v_r)\right]
+    \times 
+\left[ \sum_{t=1}^T\frac{\partial^2 \ln l}{\partial \theta\partial \theta^\top}
+(x_{it}, \theta, v_r)\right]\right\}\\
+&-&\left(\frac{\partial \ln L_i}{\partial \theta}\right)\left(\frac{\partial \ln L_i}{\partial \theta}\right)^\top
+\end{eqnarray*}
+
+
+\section{Gaussian}
+
+This is the maximum likelihood estimation of the so-called ``random
+effect'' model in the linear panel data model. The model is :
+
+$$
+y_{it} = \beta^\top x_i + \mu_i + \eta_{it}
+$$
+
+where $\mu_i \sim N (0, \sigma_\mu)$ and $\eta_{it} \sim N (0,
+\sigma_\eta)$. The density for $y_{it}$ is, for a given value of the
+individual effect :
+
+$$
+f(y_{it}\mid \mu_i) = \frac{1}{\sqrt{2\pi}
+  \sigma_\eta}e^{-\frac{1}{2}\left(\frac{y_{it}-\beta^{\top}x_{it}-\mu_i}{\sigma_\eta}\right)^2}
+$$
+
+For a given value of $\mu$, the distributions of $y_i =y_{i1}, \ldots,
+y_{iT}$ are independent, so that the joint distribution is just the
+product of the marginal densities : 
+
+$$
+f(y_i\mid \mu_i) = \left(\frac{1}{2\pi \sigma_{\eta}^2}\right)^{\frac{T_i}{2}}
+e^{-\frac{1}{2\sigma_\eta^2}\sum_{t=1}^{T_i}\left(y_{it}-\beta^{\top}x_{it}-\mu_i\right)^2}
+$$
+
+The unconditional distribution is obtained by integrating out the
+conditional distribution :
+
+$$
+f(y_i)=\frac{1}{\sqrt{2\pi \sigma_\mu^2}}
+\int_{-\infty}^{+\infty} f(y_i\mid \mu_i)e^{-\frac{1}{2}\left(\frac{\mu}{\sigma_\mu}\right)^2}d\mu=
+\frac{1}{\sqrt{2\pi \sigma_\mu^2}}
+\left(\frac{1}{2\pi \sigma_{\eta}^2}\right)^{\frac{T_i}{2}}
+\int_{-\infty}^{+\infty}e^{-\frac{1}{2}A}d\mu
+$$
+
+
+with :
+
+$$
+A = \sum_{t=1}^T \frac{(e_{it}-\mu)^2}{\sigma_{\eta}^2}+\frac{\mu^2}{\sigma_\mu^2}
+= \frac{\sigma_\eta^2 + T_i \sigma_\mu^2}{\sigma_\eta^2\sigma_\mu^2}\mu^2 - 
+\frac{2T_i\bar{e}_i}{\sigma_\eta^2}\mu + \frac{\sum_t e_{it}^2}{\sigma_\eta^2}
+$$
+
+denoting $e_{it}=y_{it}-\beta^\top x_{it}$ and $\bar{e}_i = \bar{y}_i-\beta^\top x_i$.
+
+$$
+A = \left(\frac{\sqrt{\sigma_\eta^2 + T_i
+      \sigma_\mu^2}}{\sigma_\eta\sigma_\mu} \mu -
+  \frac{\sigma_\mu/\sigma_\eta}{\sqrt{\sigma_\eta^2 +
+      T_i\sigma_\mu^2}}T_i\bar{e}_i\right)^2 + \frac{\sum_{t=1}^{T_i}
+  e_{it}^2}{\sigma_\eta^2}-
+\frac{\sigma_\mu^2/\sigma_\eta^2}{\sigma_\eta^2+T_i\sigma_\mu^2}T_i^2\bar{e}_i^2
+$$
+
+% \left(\frac{T}{\sigma^2_\eta}+\frac{1}{\sigma_\mu^2}\right) \mu^2
+% -2 T \frac{\bar{e}_i}{\sigma_\eta^2}{\mu} + \frac{\sum_t e_{it}^2}{\sigma_\eta^2}
+% $$
+
+
+
+with $z = \left(\frac{\sqrt{\sigma_\eta^2 + T_i
+      \sigma_\mu^2}}{\sigma_\eta\sigma_\mu} \mu -
+  \frac{\sigma_\mu/\sigma_\eta}{\sqrt{\sigma_\eta^2 +
+      T_i\sigma_\mu^2}}T_i\bar{e}_i\right)$ and $dz = \frac{\sqrt{\sigma_\eta^2 + T_i
+      \sigma_\mu^2}}{\sigma_\eta\sigma_\mu}d\mu$, we have :
+
+
+$$
+f(y_i)=\frac{1}{(2\pi\sigma_\eta^2)^{T_i/2}}
+\frac{\sigma_\eta}{\sqrt{\sigma_\eta^2+T_i\sigma_\mu^2}}
+e^{-\frac{1}{2\sigma_\eta^2}\left(\sum_{t=1}^{T_i} e_{it}^2 
+- \frac{\sigma_\mu^2}{\sigma_\eta^2+T_i\sigma_\mu^2}T_i^2\bar{e}_i^2\right)}
+$$
+
+$$
+\ln L_i = -\frac{T_i}{2}\ln 2 \pi - \frac{T_i}{2}\ln \sigma_\eta^2 - 
+\frac{1}{2}\ln\left(1+T_i \gamma\right) - \frac{\sum_{t=1}^{T_i}e_{it}^2}{2\sigma_\eta^2}
++ \frac{T_i^2 \gamma}{2\sigma_\eta^2(1+T_i\gamma)}\bar{e}_i^2
+$$
+
+$$
+\ln L_{it} = -\frac{1}{2}\ln 2 \pi - \frac{1}{2}\ln \sigma_\eta^2 - 
+\frac{1}{2T_i}\ln\left(1+T_i \gamma\right) - \frac{e_{it}^2}{2\sigma_\eta^2}
++ \frac{T_i \gamma}{2\sigma_\eta^2(1+T_i\gamma)}\bar{e}_i^2
+$$
+
+
+The gradient is :
+
+\begin{eqnarray*}
+\frac{\partial \ln L_{it}}{\partial \beta}&=&\frac{e_{it}x_{it}}{\sigma_\eta^2} 
+- \frac{\gamma T_i}{1 + \gamma T_i}\frac{\bar{e}_i \bar{x}_i}{\sigma_\eta^2} \\
+\frac{\partial \ln L_{it}}{\partial \gamma}&=&-\frac{1}{2}\frac{1}{1+T_i\gamma}
++\frac{1}{2}\frac{\bar{e}_i^2}{\sigma_\eta^2}
+\frac{T_i}{(1+\gamma T_i)^2}\\
+\frac{\partial \ln L_{it}}{\partial \sigma_\eta^2} &=&
+-\frac{1}{2\sigma_\eta^2}+\frac{e_{it}^2}{2\sigma_\eta^4}
+-\frac{\gamma T_i\bar{e}_i^2}{2\sigma_\eta^4(1+\gamma T_i)}
+\end{eqnarray*}
+
+
+The hessian is : 
+
+$$
+\frac{\partial \ln^2 L_{it}}{\partial \theta \partial \theta^\top}  = 
+\left(
+\begin{array}{ccc}
+- \frac{x_{it} x_{it}^\top}{\sigma_\eta^2}+\frac{T_i\gamma}{1+T_i\gamma}\frac{\bar{x}_i\bar{x}_i^\top}{\sigma_\eta^2} &
+-\frac{T_i}{\left(1+T_i\gamma\right)^2} \frac{\bar{e}_i\bar{x}_i}{\sigma_\eta^2} &
+-\frac{e_{it}x_{it}}{\sigma_\eta^4} +\frac{T_i\gamma}{1+T_i\gamma}\frac{\bar{x}_i\bar{e}_i}{\sigma_\eta^4}\\
+ & \frac{T_i}{2\left(1+T_i\gamma\right)^2} - \frac{T_i^2}{\left(1+T_i\gamma\right)^3}\frac{\bar{e}_i^2}{\sigma_\eta^2} & - \frac{1}{2}\frac{\bar{e}_i^2}{\sigma_\eta^4}
+\frac{T_i}{(1+\gamma T_i)^2} \\
+& & -\frac{2e_{it}x_{it}}{\sigma_\eta^6}
+\end{array}
+\right)
+$$
+
+
+Denoting $\theta = \frac{\sigma_\eta^2}{T\sigma_\mu^2+\sigma_\eta^2}$,
+which implies :
+$\left(\frac{T}{\sigma^2_\eta}+\frac{1}{\sigma_\mu^2}\right)=\frac{T}{(1-\theta)\sigma_\eta^2}$,
+we have :
+
+$$
+A = \left(\sqrt{\frac{T}{(1-\theta)\sigma_\eta^2}}
+\mu-\frac{\bar{e}_i\sqrt{1-\theta}\sqrt{T}}{\sigma_\eta}\right)^2
++ \frac{\sum_t e_{it}^2}{\sigma_\eta^2}-
+\frac{\bar{e}_i^2(1-\theta)T}{\sigma_\eta^2}
+$$
+
+$$
+f(y_i)=
+\frac{1}{\sqrt{2\pi \sigma_\mu^2}}
+\left(\frac{1}{2\pi \sigma_{\eta}^2}\right)^{\frac{T}{2}}
+e^{-\frac{1}{2}
+\frac{\left(\sum_t e_{it}^2-\bar{e}_i^2(1-\theta)T\right)}{\sigma_\eta^2}
+}
+\frac{\sqrt{1-\theta}\sigma_\eta}{\sqrt{T}}
+$$
+
+
+$$
+f(y_i) = 
+\frac{1}{\sqrt{2\pi}}\sqrt{\theta}
+\left(\frac{1}{2\pi \sigma_{\eta}^2}\right)^{\frac{T}{2}}
+e^{-\frac{1}{2}
+\frac{\left(\sum_t e_{it}^2-\bar{e}_i^2(1-\theta)T\right)}{\sigma_\eta^2}
+}
+$$
+
+Finally, the contribution of individual $i$ to the log-likelihood function is :
+
+$$
+\ln L_i = -0.5\ln 2\pi+0.5\ln\theta-\frac{T}{2}\ln 2\pi-\frac{T}{2}\ln\sigma_\eta^2
+-\frac{1}{2}
+\frac{\left(\sum_t e_{it}^2-\bar{e}_i^2(1-\theta)T\right)}{\sigma_\eta^2}
+$$
+
+$$
+\ln L = -\frac{n+\sum_i T_i}{2}\ln 2\pi+\frac{n}{2}\ln\theta-\frac{N}{2}\ln\sigma_\eta^2
+-\frac{1}{2}
+\frac{\sum_i\sum_t e_{it}^2-(1-\theta)\sum_iT_i\bar{e}_i^2}{\sigma_\eta^2}
+$$
+
+$$
+\ln L = -\frac{n+N}{2}\ln 2\pi+\frac{n}{2}\ln\theta-\frac{N}{2}\ln\sigma_\eta^2
+-\frac{1}{2}
+\frac{\mbox{SCR}_W +  \theta \mbox{SCR}_B}{\sigma_\eta^2}
+$$
+
+where $\mbox{SCR}_W$ and $\mbox{SCR}_B$ are respectively the within
+and the between sum of squares. The first order conditions for a
+maximum are :
+
+\begin{eqnarray}
+\frac{\partial \ln L}{\partial \beta}&=&-\frac{1}{2\sigma_\eta^2}
+\left(\sum_i\sum_t e_{it}x_{it}+\theta\sum_iT_i\bar{e}_i \bar{x}_i\right)=0\\
+\frac{\partial \ln L}{\partial \sigma_\eta^2}&=&-\frac{N}{2\sigma_\eta^2}
++\frac{1}{2\sigma_\eta^4}\left(\mbox{SCR}_W+\theta\mbox{SCR}_B\right)=0\\
+\frac{\partial \ln L}{\partial \theta}&=&\frac{n}{2\theta}-\frac{\mbox{SCR}_B}{2\sigma_\eta^2}=0
+\end{eqnarray}
+
+Solving (2) and (3) for $\theta$ and $\sigma_\eta^2$, we get :
+
+$$
+\sigma_\eta^2=\frac{\mbox{SCR}_W}{N-n}
+$$
+
+$$
+\theta = \frac{\mbox{SCR}_W/(N-n)}{\mbox{SCR}_B/n}
+$$
+
+Inserting these two values in the log-likelihood function, we get the
+concentrated log-likelihood :
+
+$$
+\ln L = -\frac{n+N}{2}\ln 2\pi + \frac{N-n}{2}\ln(N-n)+\frac{n}{2}\ln n -\frac{N}{2}
+-\frac{n}{2}\ln \mbox{SCR}_B - \frac{N-n}{2}\ln \mbox{SCR}_W
+$$
+
+$$
+\frac{\partial \ln L}{\partial \beta}=
+\frac{n}{\mbox{SCR}_B}\sum_iT_i\bar{e}_i \bar{x}_i 
++ \frac{N-n}{\mbox{SCR}_W}\sum_i\sum_te_{it}x_{it} = 0
+$$
+
+
+\section{Tobit}
+
+\subsection{Introduction}
+
+We deal here with a variable $y$ that is left-censored at zero. It is
+linked with a latent variable $y^*$ with the following rule of
+observation :
+
+\begin{eqnarray*}
+y^* \leq 0 \Rightarrow y = 0 \\
+y^* > 0 \Rightarrow y = y^*
+\end{eqnarray*}
+
+We suppose that $y^*=\beta^\top x + \epsilon$, with $\epsilon \sim
+N(0, \sigma_\epsilon^2)$. We then have :
+
+$$
+\mbox{P}(y = 0)=\Phi\left(-\frac{\beta^\top x}{\sigma_\epsilon}\right)
+$$
+
+for null values of $y$ and :
+
+$$
+f(y) = \frac{1}{\sigma_\epsilon}\phi\left(\frac{y-\beta^\top x}{\sigma_\epsilon}\right)
+$$
+
+is the density of positive observations. The contribution of one
+observation to the likelihood function is then :
+
+$$
+\left[\Phi\left(-\frac{\beta^\top x_i}{\sigma_\epsilon}\right)\right]^{I_i^0}
+\times \left[\frac{1}{\sigma_\epsilon}\phi\left(\frac{y_i-\beta^\top x_i}{\sigma_\epsilon}\right)\right]^{I_i^+}
+$$
+
+and the log-likelihood is then :
+
+$$
+\ln L = \sum_{i=1}^n \left[I_i^0 \ln \Phi\left(-\frac{\beta^\top x_i}{\sigma_\epsilon}\right)-
+I_i^+ \left(\frac{1}{2} \ln (2\pi\sigma^2_\epsilon) + \frac{1}{2}
+\frac{(y_i-\beta^\top x_i)^2}{\sigma^2_\epsilon}\right)\right]
+$$
+
+
+$$
+\frac{\partial \ln L_i}{\partial \beta}=
+\left\{-\frac{I_i^0}{\sigma_\epsilon}\frac{\phi_i}{\Phi_i}+
+\frac{y_ie_i}{\sigma_\epsilon^2}
+\right\}
+ x_i
+$$
+
+$$
+\frac{\partial \ln L_i}{\partial\sigma_\epsilon^2}=
+\left\{\frac{I_i^0\beta^\top x_i}
+{2\sigma_\epsilon^3}\frac{\phi_i}{\Phi_i}-
+\frac{I_i^+}{2\sigma_\epsilon^2}
+\left(1-\frac{e_i^2}{\sigma_\epsilon^2}\right)
+\right\}
+$$
+
+$$
+\frac{\partial^2\ln L_i}{\partial \beta\partial\beta^\top}=
+-\frac{1}{\sigma_\epsilon^2}\left[I_i^0\left(-\frac{\beta^\top x_i}
+{\sigma_\epsilon}+\frac{\phi_i}{\Phi_i}\right)\frac{\phi_i}{\Phi_i}+
+y_i\right]x_ix_i^\top
+$$
+
+$$
+\frac{\partial^2\ln L_i}{\partial \beta\partial\sigma_\epsilon^2}=
+\left\{I_i^0\left[\frac{1}{2\sigma^3}\frac{\phi_i}{\Phi_i} + 
+\left(-\frac{\beta^\top x_i}{\sigma_\epsilon}+\frac{\phi_i}{\Phi_i}\right)
+\frac{\phi_i}{\Phi_i}\frac{\beta^\top x_i}{2\sigma^4}\right]- I_i^+ \frac{e_i}{\sigma^4}\right\}x_i
+$$
+
+$$
+\frac{\partial^2\ln L_i}{\partial \sigma_\epsilon^4}=
+\frac{1}{2\sigma_\epsilon^4}\left\{
+\tilde{e}_i^0\frac{\phi_i}{\Phi_i}\left[3-\left(\tilde{e}_i^0+\frac{\phi_i}{\Phi_i}\right)
+\tilde{e}_i^0\right] +
+I_i^+(1-2\left.\tilde{e}_i^+\right.^2\right\}
+$$
+
+
+
+
+\subsection{Longitudinal data}
+
+We now have repeated observations of the same individuals, with a
+time-invariant individual effect $\mu_i$ : $y^*_{it}=\beta^\top x_{it}
++ \mu_i+\epsilon_{it}$, with $\epsilon \sim N(0, \sigma_\epsilon^2)$
+and $\mu \sim N(0, \sigma_\mu^2)$
+
+The joint probability of observing the vector $y_i=y_{i1}, \ldots,
+y_{iT}$ for individual $i$ for a given value of the individual effect
+is :
+
+$$
+\mbox{P}(y_i\mid \mu_i)=\prod_{t=1}^T\left\{\left[\Phi\left(-\frac{\beta^\top
+        x_{it} + \mu_i}{\sigma_\epsilon}\right)\right]^{1-y_{it}} \times
+  \left[\frac{1}{\sigma_\epsilon}\phi\left(\frac{y_{it}-\beta^\top
+        x_{it}-\mu_i}{\sigma_\epsilon}\right)\right]^{y_{it}}\right\}
+$$
+
+The unconditional probability is obtained by integrating out the
+individual effect :
+
+$$
+\mbox{P}(y_i)=\frac{1}{\sqrt{2\pi\sigma_\mu^2}}\int_{-\infty}^{+\infty}\mbox{P}(y_i\mid \mu_i)e^{-\frac{1}{2}\left(\frac{\mu}{\sigma_\mu}\right)^2}d\mu
+$$
+
+With a change of variable $z=\frac{\mu}{\sqrt{2}\sigma_\mu}$, we get :
+
+$$
+\mbox{P}(y_i)=\frac{1}{\sqrt{\pi}}
+\int_{-\infty}^{+\infty}\prod_{t=1}^T\left\{\left[\Phi\left(-\frac{\beta^\top
+        x_{it} + \sqrt{2\sigma_\mu^2}z}{\sigma_\epsilon}\right)\right]^{1-y_{it}} \times
+  \left[\frac{1}{\sigma_\epsilon}\phi\left(\frac{y_{it}-\beta^\top
+        x_{it}-\sqrt{2\sigma_\mu^2}z}{\sigma_\epsilon}\right)\right]^{y_{it}}\right\}
+e^{-z^2}dz
+$$
+
+which can be approximated using Gauss-Hermite quadrature :
+
+$$
+\begin{array}{rcl}
+\mbox{P}(y_i)&=&\frac{1}{\sqrt{\pi}}
+\sum_{r=1}^R w_r
+\prod_{t=1}^T\left\{\left[\Phi\left(-\frac{\beta^\top
+        x_{it} + \sqrt{2\sigma_\mu^2}v_r}{\sigma_\epsilon}\right)\right]^{1-y_{it}} \times
+  \left[\frac{1}{\sigma_\epsilon}\phi\left(\frac{y_{it}-\beta^\top
+        x_{it}-\sqrt{2\sigma_\mu^2}v_r}{\sigma_\epsilon}\right)\right]^{y_{it}}\right\} \\
+&=&\frac{1}{\sqrt{\pi}}
+\sum_{r=1}^R w_r P_{it}^r
+\end{array}
+$$
+
+with :
+
+$$
+\ln P_{it}^r = \sum_{t=1}^T
+\left[(1-y_{it}) \ln \Phi\left(-\frac{\beta^\top x_{it}+\sqrt{2\sigma_\mu^2}v_r}{\sigma_\epsilon}\right)-
+0.5 y_{it} \left(\ln (2\pi\sigma^2_\epsilon) + 
+\frac{\left(y_{it}-\beta^\top x_{it}-\sqrt{2\sigma_\mu^2}v_r\right)^2}{\sigma^2_\epsilon}\right)\right]
+$$
+
+
+$$
+\frac{\partial \ln L_i}{\partial (\beta, \sigma_\mu^2)}=
+\frac{1}{\sqrt{2\pi} L_i}\sum_{r=1}^R w_r P_{it}^r \times
+\left\{-\frac{(1-y_{it})}{\sigma_\epsilon}\frac{\phi_{it}^r}{\Phi_{it}^r}+
+\frac{y_{it}}{\sigma_\epsilon^2}\left(e_{it}-\sqrt{2\sigma_\epsilon^2}v_r\right)
+\right\}
+\left(\begin{array}{c} x_{it}\\ \sqrt{2}v_r\end{array}\right)
+$$
+
+$$
+\frac{\partial \ln L_i}{\partial\sigma_\epsilon^2}=
+\frac{1}{\sqrt{2\pi} L_i}\sum_{r=1}^R w_r P_{it}^r \times
+\left\{\frac{(1-y_{it})(\beta^\top x_{it} + \sqrt{2}\sigma_\mu^2v_r)}
+{2\sigma_\epsilon^{3/2}}\frac{\phi_{it}^r}{\Phi_{it}^r}-
+\frac{y_{it}}{2\sigma_\epsilon^2}
+\left(1-\frac{\left(e_{it}-\sqrt{2\sigma_\epsilon^2}v_r\right)^2}{\sigma_\epsilon^2}\right)
+\right\}
+$$
+
+\section{Binomial}
+
+\subsection{Introduction}
+
+The observed variable is binomial, the two possible values are 0 and
+1. Let define the latent variable $y^*$, with the following rule of
+observation :
+
+
+\begin{eqnarray*}
+y^* > \mu \Rightarrow y = 1 \\
+y^* \leq \mu \Rightarrow y = 0
+\end{eqnarray*}
+
+Without loss of generality, we can state than $\mu = 0$. The value of
+the latent variable is supposed to be the sum of a linear combination
+of the covariates and an error term :
+
+$$
+y^*=\beta^\top x + \epsilon
+$$
+
+The probabilities of the two outcomes are then :
+
+\begin{eqnarray*}
+P(y = 0) = P(\epsilon \leq - \beta^\top x)\\
+P(y = 1) = P(\epsilon > - \beta^\top x)
+\end{eqnarray*}
+
+Let $F$ be the cummulative probability function of $\epsilon$. We then have :
+
+\begin{eqnarray*}
+P(y = 0) = F(- \beta^\top x)\\
+P(y = 1) = 1 - F(- \beta^\top x) = F(\beta^\top x)
+\end{eqnarray*}
+
+where the last expression hold if the density function is symetric. 
+
+Defining $q = 2 y - 1$, which is equal to $-1, +1$, the probability
+can be expressed with the following compact expression :
+
+$$P(y) = F(q \beta^\top x)$$
+
+The mean and the variance of the latent variable is not
+identified. Two distributions are often used :
+
+$$
+F(\epsilon) = \Phi(\epsilon) = \int_{-\infty}^{\infty}\frac{1}{\sqrt{2\pi}}e^{-\epsilon^2}
+$$
+
+which leads to the probit model and 
+
+$$
+F(\epsilon) = \Lambda(\epsilon) = \frac{e^\epsilon}{1+e^\epsilon}
+$$
+
+which leads to the logit model.
+
+The log-likelihood is :
+
+$$
+\ln L = \sum_i \ln F_i
+$$
+
+with :
+
+$$
+F_i = F(z_i) \; \mbox{and}\; z_i = q_i\times\beta^\top x_i
+$$
+
+The gradient is :
+
+$$
+\frac{\partial \ln L}{\partial \beta}=\sum_i \frac{f_i}{F_i} q_i x_i
+$$
+
+and the hessian is :
+
+$$
+\frac{\partial^2 \ln L}{\partial \beta \partial \beta^\top}=
+\sum_i \left(\frac{f_i'}{F_i} - \left(\frac{f_i}{F_i}\right)^2\right)
+q_i^2 x_ix_i^\top
+$$
+
+For the logit model, we have :
+
+
+$$
+\frac{\partial \ln L}{\partial \beta}=\sum_i \frac{1}{1+e^{z_i}} q_i
+x_i
+$$
+
+and the hessian is :
+
+$$
+\frac{\partial^2 \ln L}{\partial \beta \partial \beta^\top}=
+- \sum_i \frac{e^{z_i}}{1+e^{z_i}}
+q_i^2 x_ix_i^\top
+$$
+
+
+For the probit model :
+
+
+
+$$
+\frac{\partial \ln L}{\partial \beta}=\sum_i \frac{\phi_i}{\Phi_i} q_i x_i
+$$
+
+and the hessian is :
+
+$$
+\frac{\partial^2 \ln L}{\partial \beta \partial \beta^\top}=
+- \sum_i \frac{\phi_i}{\Phi_i}\left(z_i+ \frac{\phi_i}{\Phi_i}\right)
+q_i^2 x_ix_i^\top
+$$
+
+\subsection{Longitudinal data}
+
+In case of longitudinal data, we have repeated observations of $y$ for
+the same individuals. The latent variable is defined as :
+
+$$
+y^*_{it} = \beta^\top x_{it}+\mu_i+\eta_{it}
+$$
+
+where the error term is now the sum of an individual effect $\mu_i$
+and an iid error $\eta_{it}$. Two observations of the same individual
+are correlated because of the common term $\mu_i$. If there is an
+intercept, we can assume without loss of generality than
+$\mbox{E}(\mu) = 0$.
+
+$$
+y^*_{it} = \beta^\top x_{it}+\mu_i+\eta_{it}
+$$
+
+For a given value of $\mu_i$, the probability is defined as
+previously for one observation :
+
+$$
+P(y_{it} \mid \mu_i) = F\left(q_{it}(\beta^\top x_{it}+\mu_i)\right)
+$$
+
+The joint probability of the realization of $y$ for the different
+periods for individual $i$ is :
+
+$$
+P(y_{i1}, y_{i2}, \ldots, y_{iT} \mid \mu_i) = \prod_{t=1}^T
+F\left(q_{it}(\beta^\top x_{it}+\mu_i)\right)
+$$
+
+
+The unconditional probability is obtained by integrating out this
+expression. If we suppose that the distribution of $\mu$ is normal,
+we have :
+
+$$
+L_i = \int_{-\infty}^{+\infty} \prod_{t=1}^T 
+F\left(q_{it}(\beta^\top x_{it} +\mu)\right)
+\frac{1}{\sqrt{2\pi}\sigma}e^{-0.5\left(\frac{\mu}{\sigma}\right)^2}d\mu
+$$
+
+$$
+v=\frac{\mu}{\sqrt{2}\sigma}\;\Rightarrow\; dv=\frac{d\mu}{\sqrt{2}\sigma}
+$$
+
+$$
+L_i = \frac{1}{\sqrt{\pi}}\int_{-\infty}^{+\infty} 
+\prod_{t=1}^T F\left(q_{it}(\beta^\top x_{it} +\sqrt{2}\sigma v)\right)e^{-v^2}dv
+$$
+
+There is no closed expression for this integral, but it can be
+efficiently approximated using Hermite quadratures. We then have :
+
+$$
+L_i = \frac{1}{\sqrt{\pi}}\sum_{r=1}^R w_r
+\prod_{t=1}^T F\left(q_{it}(\beta^\top x_{it} +\sqrt{2}\sigma v_r)\right)
+= \frac{1}{\sqrt{\pi}}\sum_{r=1}^R w_r F_{i}^r
+$$
+
+with : $ F_{i}^r = \prod_{t=1}^T F\left(q_{it}(\beta^\top x_{it} +\sqrt{2}\sigma v_r)\right)$
+
+$$
+g_{it}^r=\frac{\partial \ln F_{it}^r}{\partial z_{it}^r}
+$$
+
+$$
+h_{it}^r=\frac{\partial^2 \ln F_{it}^r}{\partial {z_{it}^r}^2}
+$$
+
+
+The gradient and the hessian are, denoting $\theta = (\beta, \sigma)$
+the complete set of the parameters :
+
+$$
+\frac{\partial \ln L_i}{\partial \theta} = 
+\frac{1}{\sqrt{\pi}L_i}\sum_{r=1}^R F_i^r\left[ w_r \left\{\sum_{t=1}^T 
+q_{it} g_{it}^r \left(\begin{array}{c} x_{it} \\ \sqrt{2}v_r \end{array}\right) \right\}\right]
+$$
+
+\begin{eqnarray*}
+\frac{\partial^2 \ln L_i}{\partial \theta\partial \theta^\top} &=& 
+\frac{1}{\sqrt{\pi}L_i}\sum_{r=1}^R F_i^rw_r\left[  
+\sum_{t=1}^T {q_{it}^r}^2 h_{it}^r
+\left(\begin{array}{c} x_{it} \\ \sqrt{2}v_r \end{array}\right)
+\left(x_{it}^\top, \sqrt{2}v_r\right)\right. \\
+&+&\left.\left(\sum_{t=1}^T a_{it}g_{it}^r 
+\left(\begin{array}{c} x_{it} \\ \sqrt{2}v_r \end{array}\right) \right)
+\left(\sum_{t=1}^T a_{it}g_{it}^r 
+\left( x_{it}^\top, \sqrt{2}v_r \right) \right)
+\right] \\
+&-& \left(\frac{\partial \ln L_i}{\partial \theta}\right)\left(\frac{\partial \ln L_i}{\partial \theta}\right)^\top
+\end{eqnarray*}
+
+\section{Ordinal}
+
+\subsection{Introduction}
+
+Let $\omega = (\omega_1, \omega_1, \ldots, \omega_{J}, \omega_{J+1})$
+the vector of intercepts, with $\omega_1 = -\infty$ and $\omega_{J+1}=
++\infty$.
+
+$$
+y^* = \beta^\top x + \epsilon
+$$
+
+$$
+\begin{array}{rclcclccc}
+y &=& 1 &  \Leftrightarrow & \omega_1 &\leq& \beta^\top x + \epsilon &\leq& \omega_2 \\
+y &=& 2 &  \Leftrightarrow & \omega_2 &\leq& \beta^\top x + \epsilon &\leq& \omega_3 \\
+&\vdots &  & \vdots && \vdots & & \vdots\\
+y &=& J-1 &  \Leftrightarrow & \omega_{J-1} &\leq& \beta^\top x + \epsilon &\leq& \omega_{J} \\
+y &=& J &  \Leftrightarrow & \omega_{J} &\leq& \beta^\top x + \epsilon &\leq& \omega_{J+1}\\
+\end{array}
+$$
+
+$$
+\mbox{P}(y=j)=F(\omega_j - \beta^\top x) - F(\omega_{j-1} - \beta^\top x)
+$$
+
+$$
+\mbox{P}_j = F_j - F_{j-1}
+$$
+
+The probability of the outcome $y_i$ for the individual $i$ can be writen :
+$$
+\mbox{P}_{y_i} = \mbox{P}(y = y_i) = F(\omega_{y_i+1}-\beta^\top x_i) - F(\omega_{y_i}-\beta^\top x_i)
+$$
+
+
+The gradient and the hessian are, denoting $\theta = (\beta, \omega)$ the
+complete set of the parameters, $w_h$ a vector of $J+1$ elements which
+are all zero except at the $h$ position and $e$ the derivative of the
+density function $f$ :
+
+
+$$
+\frac{\partial \ln L_i}{\partial \theta} =
+\left(\begin{array}{c} - x_i \\ w_{y_i+1}\end{array}\right) \frac{f_{y_i+1}}{P_{y_i}}
+- \left(\begin{array}{c} - x_i \\ w_{y_i}\end{array}\right) \frac{f_{y_i}}{P_{y_i}}
+$$
+
+
+\begin{eqnarray*}
+\frac{\partial^2 \ln L_i}{\partial \theta\partial \theta^\top} &=&
+\left(\begin{array}{c} - x_i \\ w_{y_i+1}\end{array}\right)\left(-x_i^\top, w_{y_i+1}^\top\right)
+ \frac{e_{y_i+1}}{P_{y_i}}
+- \left(\begin{array}{c} - x_i \\ w_{y_i}\end{array}\right)\left(-x_i^\top, w_{y_i}^\top\right) 
+\frac{e_{y_i}}{P_{y_i}}\\
+&-& \left(\frac{\partial \ln L_i}{\partial \theta}\right)\left(\frac{\partial \ln L_i}{\partial \theta}\right)^\top
+\end{eqnarray*}
+
+
+\subsection{Longitudinal data}
+
+The reasonings is very similar to the binomial model. The joint
+probability for an individual $i$ for a given individual effect is :
+
+
+$$
+P(y_{i1}, y_{i2}, \ldots, y_{iT} \mid \mu_i) = \prod_{t=1}^T
+\left[ F\left(\omega_{y_{it}+1} - \beta^\top x_{it}-\mu_i\right)
+- F\left(\omega_{y_{it}}-\beta^\top x_{it}-\mu_i\right)
+\right]
+$$
+
+The unconditional probability is, assuming a normal distribution for
+the individual effects :
+
+$$
+L_i = \int_{-\infty}^{+\infty} \prod_{t=1}^T 
+\left[ F\left(\omega_{y_{it}+1} - \beta^\top x_{it}-\mu_i\right)
+- F\left(\omega_{y_{it}}-\beta^\top x_{it}-\mu_i\right)
+\right]
+\frac{1}{\sqrt{2\pi}\sigma}e^{-0.5\left(\frac{\mu}{\sigma}\right)^2}d\mu
+$$
+
+With the same change of variable than previously, we have :
+
+$$
+L_i = \frac{1}{\sqrt \pi}\int_{-\infty}^{+\infty} \prod_{t=1}^T 
+\left[ F\left(\omega_{y_{it}+1} - \beta^\top x_{it}-\sqrt{2}\sigma v\right)
+- F\left(\omega_{y_{it}}-\beta^\top x_{it}-\sqrt{2}\sigma v\right)
+\right]
+e^{-v^2}dv
+$$
+
+which can be approximated by Gauss-Hermite quadratures :
+
+$$
+L_i = \frac{1}{\sqrt \pi}\sum_{r=1}^R w_r \prod_{t=1}^T 
+\left[ F\left(\omega_{y_{it}+1} - \beta^\top x_{it}-\sqrt{2}\sigma v_r\right)
+- F\left(\omega_{y_{it}}-\beta^\top x_{it}-\sqrt{2}\sigma v_r\right)
+\right]
+$$
+
+Denoting : 
+
+$$
+\left\{
+\begin{array}{ll}
+z_{it}^r = \omega_{y_{it}}-\beta^\top x_{it}-\sigma \sqrt{2} v_r & 
+z_{it}^{+r} = \omega_{y_{it}+1}-\beta^\top x_{it}-\sigma \sqrt{2} v_r \\
+m_{it}^r=m(z_{it}^r) & m_{it}^{+r}=m(z_{it}^{+r})\\
+M_{it}^{r}=\left(\begin{array}{c} - x_i \\ w_{y_{it}}\\-\sqrt{2}v_r\end{array}\right) &
+M_{it}^{r+}=\left(\begin{array}{c} - x_i \\ w_{y_{it}+1}\\-\sqrt{2}v_r\end{array}\right) \\
+\end{array}
+\right.
+$$
+
+$$
+L_i = \frac{1}{\sqrt \pi}\sum_{r=1}^R w_r \prod_{t=1}^T 
+\left[ F_{it}^{+r}-F_{it}^{r}\right]
+$$
+
+
+with $\theta^\top = (\beta^\top, \omega^\top, \sigma)$ the
+complete set of parameters, $F_i^r=\prod_{t=1}^T\left[ F_{it}^{+r}-F_{it}^{r}\right]$
+$g_{it}^r=\frac{\partial \ln \left[ F_{it}^{+r}-F_{it}^{r}\right]}{\partial z_{it}^r}$, 
+$h_{it}^r=\frac{\partial^2 \ln \left[ F_{it}^{+r}-F_{it}^{r}\right]}{\partial {z_{it}^r}^2}$
+the gradient is :
+
+$$
+\frac{\partial \ln L_i}{\partial \theta}=
+\frac{1}{\sqrt{\pi}L_i} \sum_{r=1}^R w_rF_i^r \left\{ \sum_{t=1}^T
+\left( g_{it}^{+r}M_{it}^{+r}
+- g_{it}^{r}M_{it}^{r}\right)
+\right\}
+$$
+
+\begin{eqnarray*}
+\frac{\partial^2 \ln L_i}{\partial \theta \partial \theta^\top}&=&
+\frac{1}{\sqrt{\pi}L_i} \sum_{r=1}^R w_r P_i^r \left\{
+\left(
+\sum_{t=1}^T
+g_{it}^{+r}M_{it}^{+r}- g_{it}^rM_{it}^r\right) 
+\times
+\left(
+\sum_{t=1}^T
+g_{it}^{+r}M_{it}^{+r}- g_{it}^rM_{it}^r\right)^\top\right.
+\\
+&+&\sum_{t=1}^T
+\frac{e_{y_{it}}^{+r}}{F_{y_{it}}^{+r}-F_{y_{it}}^{r}}
+M_{it}^{+r} {M_{it}^{+r}}^\top
+-\sum_{t=1}^T
+\frac{e_{y_{it}}^{r}}{F_{y_{it}}^{+r}-F_{y_{it}}^{r}}
+M_{it}^r{M_{it}^r}^\top\\
+&-&\left.\sum_{t=1}^T\left(
+\frac{\left(f_{y_{it}}^{+r}M_{it}^{+r}-f_{y_{it}}^{r}M_{it}^{r}\right)
+\left(f_{y_{it}}^{+r}M_{it}^{+r}-f_{y_{it}}^{r}M_{it}^{r}\right)^\top}
+{\left(F_{y_{it}}^{+r}-F_{y_{it}}^{r}\right)^2}\right)\right\}
+ \\
+&-&\left(\frac{\partial \ln L_i}{\partial \theta}\right)
+\left(\frac{\partial \ln L_i}{\partial \theta}\right)^\top
+\end{eqnarray*}
+
+\newpage
+
+\section{Poisson}
+
+\subsection{Introduction}
+
+We assume that a count variable $y$ is a random variable with a
+Poisson distribution. Denoting $\theta_i$ the parameter of the
+Poisson distribution (which is the expected value and the variance of
+the variable), we have the following probability for the outcome $y_i$ :
+
+$$
+P(y_i)=\frac{e^{-\theta_i}{\theta_i^{y_i}}}{y_i!}
+$$
+
+Using the log link, we define the value of the parameter of the
+Poisson distribution as :
+
+$$
+\theta_i=e^{\beta^\top x_i}
+$$
+
+
+$$
+P(y_i\mid x_i)=\frac{e^{-e^{\beta^\top x_i}}e^{\beta^\top x_iy_i}}{y_i!}
+$$
+
+Taking this probability in logarithm and summing for all the
+individuals, we get the following log likelihood function :
+
+$$
+\ln L
+=-\sum_{i=1}^ne^{\beta^\top x_i}+\sum_{i=1}^n \beta^\top x_i y_i-\sum_{i=1}^n\ln y_i!
+$$
+
+The gradient and the hessian are :
+
+$$
+\frac{\partial \ln L}{\partial \beta}=\sum_{i=1}^n \left(y_i - e^{\beta^\top x_i}\right)x_i
+$$
+
+$$
+\frac{\partial \ln L}{\partial \beta\partial \beta^\top}=-\sum_{i=1}^n e^{\beta^\top x_i}x_ix_i^\top
+$$
+
+
+\subsection{Longitudinal dta}
+
+We assume that the Poisson parameter is :
+
+$$
+\theta_{it}=\alpha_i\lambda_{it}=\alpha_ie^{\beta^\top x_{it}}
+$$
+
+which means that there is a multiplicative individual effect. For a
+given value of the individual effect, the probability associated to
+$y_{it}$ is :
+
+$$
+\mbox{P}(y_{it} \mid x_{it},\alpha_i,\beta)=
+\frac{e^{-\theta_{it}}\theta_{it}^{y_{it}}}{y_{it}!}
+=
+\frac{e^{-\alpha_i\lambda_{it}}(\alpha_i\lambda_{it})^{y_{it}}}{y_{it}!}
+$$
+
+Let $Y_i=\sum_{t=1}^Ty_{it}$ the sum of the realisations of the
+variable for all periods for individual $i$ and
+$\Lambda_i=\sum_{t=1}^T \lambda_{it}$. The sum of some Poisson
+variable is Poisson with a parameter equal to the sum of the Poisson
+parameters of the summed variables. Therefore, we have :
+
+\begin{equation}
+\label{eq:sumy}
+\mbox{P}(Y_i \mid x_i,\alpha_i,\beta)=
+\frac{e^{-\alpha_i\Lambda_i}(\alpha_i \Lambda_i)^{Y_i}}{Y_i!}
+\end{equation}
+
+Let $y_i=(y_{i1},y_{i2},\ldots,y_{iT})$ the vector of outcome for
+indivual $i$. We have :
+
+
+\begin{equation}
+\label{eq:vecty}
+\mbox{P}(y_i \mid x_i,\alpha_i,\beta) =
+\frac{e^{-\alpha_i\sum_{t=1}^T\lambda_{it}}\prod_{t=1}^T(\alpha_i\lambda_{it})^{y_{it}}}{\prod_{t=1}^Ty_{it}!}
+=
+\frac{e^{-\alpha_i\Lambda_{i}}\alpha_i^{Y_i}\prod_{t=1}^T\lambda_{it}^{y_{it}}}{\prod_{t=1}^Ty_{it}!}
+\end{equation}
+
+Applying Bayes' theorem, we have :
+
+$$
+\mbox{P}(y_i\mid x_i,\alpha_i,\beta)=
+\mbox{P}(y_i\mid x_i,\alpha_i,\beta,Y_i)
+\mbox{P}(Y_i\mid x_i,\alpha_i,\beta)
+$$
+
+\emph{i.e.} the joint probability of the elements of $y_i$ is the
+product of the conditional probability of $y_i$ given the sum of its
+elements $Y_i$ times the marginal probability of $Y_i$. This
+conditional probability is :
+
+$$
+\mbox{P}(y_i\mid x_i,\alpha_i,\beta,Y_i)
+=\frac{\mbox{P}(y_i\mid x_i,\alpha_i,\beta)}
+{\mbox{P}(Y_i\mid x_i,\alpha_i,\beta)}
+$$
+
+which implies :
+
+\begin{equation}
+\label{eq:pwith}
+\mbox{P}(y_i\mid x_i,\beta,Y_i)=
+\frac{Y_i!}{\Lambda_i^{Y_i}}\prod_{t=1}^T\frac{\lambda_{it}^{y_{it}}}{y_{it}!}
+\end{equation}
+
+We see that $Y_i$ is a ``sufficient statistic'', which means that it
+helps removing the individual effects. Taking in logs and summing for
+all the individual, we get the ``within'' Poisson model :
+
+\begin{equation}
+\label{eq:loglw}
+\ln L (y \mid x, \beta, Y)=
+\sum_{i=1}^n\left(\ln Y_i! - Y_i \ln\sum_{t=1}^T\lambda_{it}+\sum_{t=1}^T\left(y_{it}\ln \lambda_{it}-\ln y_{it}!\right)\right)
+\end{equation}
+
+To get the ``between'' and the ``random-effects'' models, we need to
+integrate out the relevant probabilities (\ref{eq:sumy} and
+\ref{eq:vecy} respectively), for a given distribution law of the
+individual effects. As these individual effects should be positive, a
+natural choice is the gamma distribution. The gamma distribution is
+given by the following density :
+
+$$
+f(x,a,b)=\frac{a^b}{\Gamma(b)}e^{-ax}x^{b-1}
+$$
+
+with
+
+$$
+\Gamma(z)=\int_0^{+\infty}t^{z-1}e^{-t}dt
+$$
+
+being the $\Gamma$ function. The expected value and the variance of $x$ are respectively :
+
+$$\mbox{E}(x)=\frac{b}{a} \mbox{ and }  \mbox{V}(x)=\frac{b}{a^2}$$
+
+If the model includes an intercept, the expected value is not
+identified and we can, without restriction impose that it is equal to
+1, which implies than $a=b$. We then have the one parameter (denoted
+$\delta$) gamma distribution :
+
+$$
+f(\alpha)=\frac{\delta^\delta}{\Gamma(\delta)}e^{-\delta
+  \alpha}\alpha^{\delta-1}
+$$
+
+Integrating out the conditional probabilities (\ref{eq:sumy} and
+\ref{eq:vecy}) gives the following unconditional probabilities for the
+``between'' and for the ``random effects'' models :
+
+$$
+\mbox{P}(Y_i\mid x_i,\beta)=
+\int_0^{+\infty}\mbox{P}(Y_i,x_i,\alpha,\beta)f(\alpha)d\alpha
+=\frac{{\Lambda_i}^{Y_i}}{Y_i!}\frac{\delta^\delta}{\Gamma(\delta)}
+\frac{\Gamma(Y_i+\delta)}{(\Lambda_i+\delta)^{Y_i+\delta}}
+$$
+
+$$
+\mbox{P}(y_i,x_i,\beta)=
+\int_0^{+\infty}\mbox{P}(y_i,x_i,\alpha,\beta)f(\alpha)d\alpha
+=\prod_{t=1}^T\frac{\lambda_{it}^{y_{it}}}{y_{it}!}
+\frac{\delta^\delta}{\Gamma(\delta)}
+\frac{\Gamma(Y_i+\delta)}{(\Lambda_i+\delta)^{Y_i+\delta}}
+$$
+
+which in turns leads to the following log-likelihood for the two
+models :
+
+\begin{equation}
+\label{eq:loglb}
+\begin{array}{rcl}
+\ln L (Y \mid x, \beta)&=&
+\sum_{i=1}^n\left[Y_i\ln \sum_t \lambda_{it} - \ln Y_i! +\delta \ln \delta\right. \\
+&-& \left.\ln \Gamma(\delta)+\ln \Gamma(Y_i+\delta)
+- (Y_i+\delta)\ln \left(\sum_{t=1}^T\lambda_{it}+\delta\right)\right]
+\end{array}
+\end{equation}
+
+
+
+\begin{equation}
+\label{eq:loglr}
+\begin{array}{rcl}
+  \ln L (y \mid x, \beta)&=&
+  \sum_{i=1}^n\left[\sum_t\left(y_{it}\ln \lambda_{it} - \ln y_{it}!\right) +\delta \ln \delta\right. \\
+  &-& \left.\ln \Gamma(\delta)+\ln \Gamma(Y_i+\delta)
+    - (Y_i+\delta)\ln \left(\sum_{t=1}^T\lambda_{it}+\delta\right)\right]
+\end{array}
+\end{equation}
+
+
+\section{Negbin}
+
+\subsection{Introduction}
+
+Count variables often exhibit overdispersion, which means that the
+variance is often greater than the mean. In this case, the Negbin
+model is a relevant alternative. The model is very similar with the
+random effect Poisson model in a pure cross section seting. 
+
+We assume than $y_i$ is a random variable which follow a Poisson
+distribution with a parameter $\theta_i = \alpha_i \lambda_i$ where
+$\lambda_i=e^{\beta^\top x_i}$ if the log link is chosen and
+$\alpha_i$ is a random variable. 
+
+The conditional probability for $y_i$ is then :
+
+$$
+\mbox{P}(y_i \mid x_i,\alpha_i,\beta)=
+\frac{e^{-\theta_i}\theta_i^{y_i}}{y_i!}
+=
+\frac{e^{-\alpha_i\lambda_i}(\alpha_i\lambda_i)^{y_i}}{y_i!}
+$$
+
+$\alpha_i$ is supposed to follow a gamma distribution and, as
+previously, the mean is not identified, so that a one parameter
+distribution is chosen, which imposes that the mean is equal to 1.
+
+$$
+f(\alpha)=\frac{\delta^\delta}{\Gamma(\delta)}e^{-\delta
+  \alpha}\alpha^{\delta-1}
+$$
+
+Integrating out the conditional probability using this density, we get :
+
+$$
+P(y_i\mid x_i)=\int_{0}^{+\infty}
+\frac{e^{-\alpha\lambda_{i}}(\alpha\lambda_{i})^{y_{i}}}{y_{i}!}
+\frac{\delta^\delta}{\Gamma(\delta)}e^{-\delta
+  \alpha}\alpha^{\delta-1}
+d\alpha
+$$
+
+$$
+P(y_i\mid x_i)=
+\left(\frac{\delta_i}{\lambda_i + \delta_i}\right)^{\delta_i}
+\left(\frac{\lambda_i}{\lambda_i + \delta_i}\right)^{y_i}
+\frac{\Gamma(y_i + \delta_i)}{\Gamma(y_i+1)\Gamma(\delta_i)}
+$$
+
+To understand the meaning of $\delta_i$, we compute the first two
+moments of $y_i$. First, for a given value of $\alpha_i$, we still
+have $\mbox{E}(y_i\mid \alpha_i)=\mbox{V}(y_i\mid
+\alpha_i)=\theta_i=\alpha_i\lambda_i$. The unconditional expected
+value is : $\mbox{E}_\alpha(\alpha \lambda_i)=\lambda_i$ because the
+mean of $\alpha$ is equal to 1.
+
+To get the unconditional variance, we apply the rule of variance :
+
+$$
+\mbox{V}(y_i)=\mbox{E}_\alpha(\alpha\lambda_i)+\mbox{V}_\alpha(\alpha\lambda_i)
+= \lambda_i + \frac{1}{\delta_i}\lambda_i^2
+$$
+
+A rather general formula for $\delta_i$ is :
+
+$$
+\delta_i = \frac{\lambda_i^{2-k}}{\nu}
+$$
+
+For $k=1$, we have the Negbin1 model, with $\delta_i=\lambda_i/\nu$
+and $\mbox{V}(y_i)=\lambda_i(1+\nu)$. In this case, the variance is
+proportional to the mean. 
+
+For $k=2$, we have the Negbin2 model, with $\delta_i=1/\nu$
+and $\mbox{V}(y_i)=\lambda_i+\nu \lambda_i^2$. In this case, the variance is
+a quadratic function of the mean. 
+
+
+\subsection{Longitudinal data}
+
+\begin{equation}
+\label{eq:pnbwith}
+\mbox{P}(y_i\mid x_i,\beta,Y_i)=
+\left(\prod_{t=1}^T\frac{\Gamma(\lambda_{it}+y_{it})}{\Gamma(\lambda_{it})\Gamma(y_{it}+1)}\right)
+\frac{\Gamma(\Lambda_i)\Gamma(Y_i+1)}{\Gamma(\Lambda_i+Y_i)}
+\end{equation}
+
+\begin{equation}
+\label{eq:pnbbet}
+\mbox{P}(Y_i\mid x_i,\beta)=
+\frac{\Gamma(\Lambda_i+Y_i)}{\Gamma(\Lambda_i)\Gamma(Y_i+1)}
+\frac{\Gamma(a+b)\Gamma(a+\Lambda_i)\Gamma(b+Y_i)}
+{\Gamma(a)\Gamma(b)\Gamma(a+b+\Lambda_i+Y_i)}
+\end{equation}
+
+\begin{equation}
+\label{eq:pnbre}
+\mbox{P}(y_i,x_i,\beta)=
+\frac{\Gamma(a+b)\Gamma(a+\Lambda_i)\Gamma(b+Y_i)}
+{\Gamma(a)\Gamma(b)\Gamma(a+b+\Lambda_i+Y_i)}
+\left(\prod_{t=1}^T\frac{\Gamma(\lambda_{it}+y_{it})}{\Gamma(\lambda_{it})+\Gamma(y_{it}+1)}\right)
+\end{equation}
+
+\end{document}
