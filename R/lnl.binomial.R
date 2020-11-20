@@ -59,10 +59,10 @@ lnl.binomial <- function(param, y, X, id, model, link, rn, start.sigma = FALSE){
                 p <- as.numeric(p)
                 P <- as.numeric(P)
                 z <- q * (bX + sqrt(2) * sigma * v)
-                gi <- q * mills(z) * cbind(X, v)
+                gi <- q * mills(z) * cbind(X, sqrt(2) * v)
                 gi <- apply(gi, 2, tapply, id, sum)
                 H1 <- crossprod(p * gi, gi)
-                H2 <- crossprod(P * millsp(z) * cbind(X, v), cbind(X, v))
+                H2 <- crossprod(P * millsp(z) * cbind(X, sqrt(2) * v), cbind(X, sqrt(2) * v))
                 (H1 + H2) * w
             },
             rn$weights, rn$nodes, Pir, SIMPLIFY = FALSE)
