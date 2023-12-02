@@ -1,16 +1,28 @@
 Package: pglm
-Version: 0.2-3
-Date: 2021-07-19
+Version: 1.0-0
+Date: 2023-12-02
 Title: Panel Generalized Linear Models
-Authors@R: person("Yves", "Croissant", role = c("aut", "cre"), email = "yves.croissant@univ-reunion.fr")
-Depends: R (>= 2.10), maxLik, plm
-Imports: statmod, Formula
-Suggests: lmtest, car
+Authors@R: person("Yves",
+                  "Croissant",
+		  role = c("aut", "cre"),
+		  email = "yves.croissant@univ-reunion.fr",
+		  comment = c(ORCID = "0000-0002-4857-7736"))
+Depends: R (>= 3.5.0), micsr
+Imports: statmod, Formula, plm, Rdpack
+Suggests: lmtest, car, knitr
 Description: Estimation of panel models for glm-like models:
              this includes binomial models (logit and probit), count models (poisson and negbin)
 	     and ordered models (logit and probit), as described in:
-             Baltagi (2013) Econometric Analysis of Panel Data, ISBN-13:978-1-118-67232-7,
+             Baltagi (2013) Econometric Analysis of Panel Data <doi:10.1007/978-3-030-53953-5>
 	     Hsiao (2014) Analysis of Panel Data  <doi:10.1017/CBO9781139839327> and
-	     Croissant and Millo (2018), Panel Data Econometrics with R, ISBN:978-1-118-94918-4.
+	     Croissant and Millo (2018), Panel Data Econometrics with R <doi:10.1002/9781119504641>.
+Encoding: UTF-8
 License: GPL (>=2)
-URL: https://cran.r-project.org/package=pglm
+URL: https://www.r-project.org/package=pglm
+VignetteBuilder: knitr
+NeedsCompilation: yes
+RoxygenNote: 7.2.3
+Roxygen: list(markdown = TRUE)
+LazyData: true
+RdMacros: Rdpack
+
