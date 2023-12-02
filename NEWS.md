@@ -1,3 +1,5 @@
+# pglm 1.0-0
+
 # pglm 0.2-3
 
 * missing sqrt 2 for binomial models (fixed thanks to Garett Glasgow)
