@@ -75,6 +75,8 @@ pglm <-  function(formula, data, subset, na.action,
         else id <- NULL
     }
     # compute the nodes and the weights for the gaussian quadrature
+    print(family)
+    print(model)
     if (model == "random" && (! family %in% c("poisson", "negbin", "gaussian")))
         rn <- gauss.quad(R, kind = 'hermite')
     else rn <- NULL
@@ -121,10 +123,16 @@ pglm <-  function(formula, data, subset, na.action,
 #  ml$grad <- eval(parse(text = thefunc))
     thefunc <- paste("function(start) attr(lnl.", family,
                      "(", argschar(args), "), \"hessian\")", sep = "")
-#  ml$hess <- eval(parse(text = thefunc))
-    
+                                        #  ml$hess <- eval(parse(text = thefunc))
+    print(start)
+    ## print(head(y))
+    ## print(head(X))
+    ## print(head(id))
+    ## print(head(rn))
+    ## print(as.numeric(lnl.binomial(start, y, X, id, link = "probit", model = "random", rn = rn)))
     ml$start <- start
     ml[[1]] <- as.name('maxLik')
+
 #  if (family == "negbin") ml$activePar <- 14
 
     result <- eval(ml, parent.frame())

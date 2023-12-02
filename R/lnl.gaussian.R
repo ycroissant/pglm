@@ -1,4 +1,4 @@
-lnl.gaussian <- function(param, y, X, id, model, link, rn, other = NULL){
+lnl.gaussian <- function(param, y, X, id, model, link, rn, other = NULL, ...){
   if (is.null(other)) other <- "sd"
   Ti <- as.numeric(table(id)[as.character(id)])
   T <- Ti[1]

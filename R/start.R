@@ -14,7 +14,7 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
             if (ls == 0){
                 interc <- ifelse(link == "probit", qnorm(mean(y)), - log(1 / mean(y) - 1))
                 start <- c(interc, rep(0, ncol(X) - 1))
-                names(start) <- colnames(X)
+                  names(start) <- colnames(X)
             }
         }
         if (model == "random"){
@@ -25,6 +25,7 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
                 startcl <- cl
                 startcl[c('model', 'method', 'print.level')] <- c('pooling', 'nr', 0)
                 glmest <- eval(startcl, parent.frame())
+                print(glmest)
                 if (ls == 0){
                 # when start is null compute the starting value of sigma
                     sigma <- lnl.binomial(coef(glmest), y = y, X = X, id = id,
