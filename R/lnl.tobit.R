@@ -1,5 +1,7 @@
-lnl.tobit <- function(param, y, X, id, model, link, rn, other = NULL, start.sigma = FALSE, trunc = NULL){
+# other: default var, sd, lsd
 
+lnl.tobit <- function(param, y, X, id, model, link, rn, other = NULL,
+                      start.sigma = FALSE, trunc = NULL){
     if (is.null(trunc)){
         lower <- 0
         upper <- + Inf
@@ -14,7 +16,6 @@ lnl.tobit <- function(param, y, X, id, model, link, rn, other = NULL, start.sigm
             upper <- trunc[2]
         }
     }   
-        
     if (is.null(other)) other <- "sd"
     mills <- function(x) exp(dnorm(x, log = TRUE) - pnorm(x, log.p = TRUE))
     N <- length(y)
@@ -56,12 +57,10 @@ lnl.tobit <- function(param, y, X, id, model, link, rn, other = NULL, start.sigm
         gradi[YLO, K+1L] <- -  e[YLO] * mz[YLO]  / (2 * sigma ^ 2)
         gradi[YUT, 1L:K] <-    e[YUT]  * X[YUT, , drop = FALSE] / sigma
         gradi[YUT, K+1L] <- - (1 - e[YUT] ^ 2) / (2 * sigma ^ 2)
-        
         gradi[YUP, 1L:K] <-   mmz[YLO] * X[YLO, , drop = FALSE] / sigma
         gradi[YUP, K+1L] <- - mmz[YLO] * e[YLO] / (2 * sigma ^ 2)
-        
-        if (other == "sd")  gradi[, K+1L] <- gradi[, K+1L] * (2 * sigma)
-        if (other == "lsd") gradi[, K+1L] <- gradi[, K+1L] * (2 * sigma ^ 2)
+        if (other == "sd")  gradi[, K + 1L] <- gradi[, K + 1L] * (2 * sigma)
+        if (other == "lsd") gradi[, K + 1L] <- gradi[, K + 1L] * (2 * sigma ^ 2)
         hbb <- hbs <- hss <- numeric(length = N)
         hbb[YLO] <- - (e[YLO] + mz[YLO]) * mz[YLO] / sigma ^ 2
         hbs[YLO] <- mz[YLO] * (1 - (e[YLO] + mz[YLO]) * e[YLO])/(2 * sigma ^ 3)
@@ -145,27 +144,27 @@ lnl.tobit <- function(param, y, X, id, model, link, rn, other = NULL, start.sigm
                 hbs <- apply(hbs * cbind(X, sqrt(2)* x) * P, 2, sum)
                 hss <- sum(hss * P)
                 H2 <- rbind(cbind(hbb, hbs), c(hbs, hss))
-                mX <- H2[1L:K, K+1L]
-                sX <- H2[1L:K, K+2L]
-                mm <- H2[K+1L, K+1L]
-                ss <- H2[K+2L, K+2L]
-                H2[K+1L, K+1L] <- ss
-                H2[K+2L, K+2L] <- mm
-                H2[1L:K, K+1L] <- H2[K+1L, 1L:K] <- sX
-                H2[1L:K, K+2L] <- H2[K+2L, 1L:K] <- mX
+                mX <- H2[1L:K, K + 1L]
+                sX <- H2[1L:K, K + 2L]
+                mm <- H2[K+1L, K + 1L]
+                ss <- H2[K+2L, K + 2L]
+                H2[K + 1L, K + 1L] <- ss
+                H2[K + 2L, K + 2L] <- mm
+                H2[1L:K, K + 1L] <- H2[K + 1L, 1L:K] <- sX
+                H2[1L:K, K + 2L] <- H2[K + 2L, 1L:K] <- mX
                 (H1 + H2) * w / sqrt(pi)
             },
             rn$weights, rn$nodes, Pir, SIMPLIFY = FALSE
         )
         H <- Reduce("+", H) - crossprod(apply(ogradi, 2, tapply, id, sum))
         if (other == "sd"){
-            H[K+1, c(1:K, K+2)] <- H[c(1:K, K+2), K+1] <- H[K+1, c(1:K, K+2)] * (2 * sigma)
-            H[K+1, K+1] <- 4 * sigma ^ 2 * H[K+1, K+1] + sum(gradi[, K+1L]) / sigma
+            H[K + 1, c(1:K, K + 2)] <- H[c(1:K, K + 2), K + 1] <- H[K + 1, c(1:K, K + 2)] * (2 * sigma)
+            H[K + 1, K + 1] <- 4 * sigma ^ 2 * H[K + 1, K + 1] + sum(gradi[, K + 1L]) / sigma
         }
         if (other == "lsd"){
-            H[K+1, c(1:K)] <- H[c(1:K), K+1] <- H[K+1, c(1:K)] * (2 * sigma ^ 2)
-            H[K+2, K+1] <- H[K+1, K+2] <- H[K+2, K+1] * (2 * sigma ^ 2)
-            H[K+1, K+1] <- 4 * sigma ^ 4 * H[K+1, K+1] + 2 * sum(gradi[, K+1L])
+            H[K + 1, c(1:K)] <- H[c(1:K), K + 1] <- H[K + 1, c(1:K)] * (2 * sigma ^ 2)
+            H[K + 2, K + 1] <- H[K + 1, K + 2] <- H[K + 2, K + 1] * (2 * sigma ^ 2)
+            H[K + 1, K + 1] <- 4 * sigma ^ 4 * H[K + 1, K + 1] + 2 * sum(gradi[, K + 1L])
         }
     }
     attr(lnL, "gradient") <- apply(gradi, 2, sum)

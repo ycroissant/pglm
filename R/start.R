@@ -5,29 +5,35 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
     # the negbin model)
     ls <- length(start)
     K <- ncol(X)
-  
+
     if (family == "binomial"){
+        interc <- ifelse(link == "probit", qnorm(mean(y)), - log(1 / mean(y) - 1))
+        start <- c(interc, rep(0, ncol(X) - 1))
+        names(start) <- colnames(X)
+        if (model == "random") start <- c(start, sigma = 0)
+    }
+    
+    if (family == "binomial!!!!"){
         if (model == "pooling"){
-        # use Phi^-1(ybar) as starting value for the intercept and 0 for
-        # the other coefficients
+            # use Phi^-1(ybar) as starting value for the intercept and 0 for
+            # the other coefficients
             if (!ls %in% c(0, K)) stop("irrelevant length for the start vector")
             if (ls == 0){
                 interc <- ifelse(link == "probit", qnorm(mean(y)), - log(1 / mean(y) - 1))
                 start <- c(interc, rep(0, ncol(X) - 1))
-                  names(start) <- colnames(X)
+                names(start) <- colnames(X)
             }
         }
         if (model == "random"){
             if (!ls %in% c(0, 1, K + 1)) stop("irrelevant length for the start vector")
             if (ls <= 1){
-            # the case where start is null or of length one (the sigma
-            # parameter). In these cases, compute the pooling model
+                # the case where start is null or of length one (the sigma
+                # parameter). In these cases, compute the pooling model
                 startcl <- cl
-                startcl[c('model', 'method', 'print.level')] <- c('pooling', 'nr', 0)
+                startcl[c('model', 'method', 'print.level')] <- c('pooling', 'newton', 0)
                 glmest <- eval(startcl, parent.frame())
-                print(glmest)
                 if (ls == 0){
-                # when start is null compute the starting value of sigma
+                    # when start is null compute the starting value of sigma
                     sigma <- lnl.binomial(coef(glmest), y = y, X = X, id = id,
                                           link = link, model = "pooling", start.sigma = TRUE)
                     start <- c(coef(glmest), sigma = sigma)
@@ -57,7 +63,7 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
                 # the case where start is null or of length one (the sigma
                 # parameter). In these cases, compute the pooling model
                 startcl <- cl
-                startcl[c('model', 'method', 'print.level')] <- c('pooling', 'nr', 0)
+                startcl[c('model', 'method', 'print.level')] <- c('pooling', 'newton', 0)
                 glmest <- eval(startcl, parent.frame())
                 if (ls == 0){
                 # when start is null compute the starting value of sigma
@@ -72,8 +78,8 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
     
     if (family == "poisson"){
         if (model == "pooling"){
-        # use Phi^-1(ybar) as starting value for the intercept
-            if (!ls %in% c(0, K)) stop("irrelevant length for the start vector")
+            # use Phi^-1(ybar) as starting value for the intercept
+            if (! ls %in% c(0, K)) stop("irrelevant length for the start vector")
             if (ls == 0){
                 start <- c(log(mean(y)), rep(0, K - 1))
                 names(start) <- colnames(X)
@@ -84,11 +90,11 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
             else relevant.values <- c(0, 1, K + 1)
             if (!ls %in% relevant.values) stop("irrelevant length for the start vector")
             if (ls <= 1){
-            # the case where start is null or of length one (the sigma
-            # parameter). In these cases, compute the pooling model
+                # the case where start is null or of length one (the sigma
+                # parameter). In these cases, compute the pooling model
                 startcl <- cl
                 startcl$start <- NULL
-                startcl[c('model', 'method', 'print.level')] <- c('pooling', 'nr', 0)
+                startcl[c('model', 'method', 'print.level')] <- c('pooling', 'newton', 0)
                 glmest <- eval(startcl, parent.frame())
                 if (ls == 0){
                     if (model == "within") start <- coef(glmest)[Kw]
@@ -123,9 +129,9 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
     
     if (family == "negbin"){
         if (model == "pooling"){
-         # Use the Poisson model for starting values
+           # Use the Poisson model for starting values
             startcl <- cl
-            startcl[c('model', 'method', 'print.level', 'family')] <- c('pooling', 'nr', 0, poisson)
+            startcl[c('model', 'method', 'print.level', 'family')] <- c('pooling', 'newton', 0, poisson)
             glmest <- eval(startcl, parent.frame())
             haty <- lnl.poisson(coef(glmest), y = y, X = X, id = id,
                                 link = link, model = "pooling")
@@ -137,24 +143,19 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
                 alpha <- V / E - 1
             }
             if (vlink == 'nb2'){
-                alpha <- V / E^2 - 1 / E
-##         print(alpha)
-##         print(summary(lm(I(res^2/haty) ~ haty )))
-##         print(summary(lm(I(res^2/haty) ~ haty -1)))
-##         alpha <- coef(lm(I(res^2/haty)~ haty - 1)) - 1
-##         print(alpha)
+                alpha <- V / E ^ 2 - 1 / E
             }
             start <- c(coef(glmest), sigma = alpha)
         }
         else{
             if (model != "within") relevant.values <- c(0, K + 1L)
             else relevant.values <- c(0, 2, K + 3L)
-            if (!ls %in% relevant.values) stop("irrelevant length for the start vector")
+            if (! ls %in% relevant.values) stop("irrelevant length for the start vector")
             if (ls <= 1){
-        # the case where start is null or of length one (the sigma
-        # parameter). In these cases, compute the pooling model
+                # the case where start is null or of length one (the sigma
+                # parameter). In these cases, compute the pooling model
                 startcl <- cl
-                startcl[c('model', 'method', 'print.level', 'family')] <- c('pooling', 'nr', 0, poisson)
+                startcl[c('model', 'method', 'print.level', 'family')] <- c('pooling', 'newton', 0, "poisson")
                 glmest <- eval(startcl, parent.frame())
                 if (ls == 0){
                     if (model == "within") start <- coef(glmest)#[within.var]
@@ -163,8 +164,8 @@ starting.values <- function(family, link, vlink, rn, model, Kw, X, y, id, cl, st
                 else start <- c(coef(glmest), a = 2, b = 1)
             }
         }
+
     }
-    
     if (family == "gaussian"){
         if (is.null(other)) other <- "sd"
         if (is.null(start)){
